@@ -87,3 +87,9 @@ dmypy.json
 *.swp
 *.swo
 *.DS_Store
+
+*.xml
+*/statepoint.*.h5
+*/summary.h5
+*/plot_settings.pkl
+*/tallies.out

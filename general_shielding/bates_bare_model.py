@@ -44,9 +44,7 @@ Air.add_element('Ar', 0.012827, 'wo')
 Air.set_density('g/cm3', 0.0012)
 
 # UPDATE WITH ACTUAL DIMENSIONS
-concrete_wall_rpp = RPP(3000, 3000 + 24*2.54,
-                        500, 1500,
-                        0, 8*12*2.54)
+
 
 def build_bates_model(experiment_universe=None,
                       source_room='warehouse', 
@@ -129,10 +127,18 @@ def build_bates_model(experiment_universe=None,
 
     control_outer_rpp = RPP(corner['nw'][0] + 26*ft2cm, corner['nw'][0] + (26 + 16.2)*ft2cm,
                         corner['nw'][1] - (1.1 + 10.3)*ft2cm, corner['nw'][1] - (1.1)*ft2cm,
-                        0, 10*ft2cm)
+                        0, 8*ft2cm)
     control_inner_rpp = RPP(control_outer_rpp.xmin.x0 + outer_wall_th, control_outer_rpp.xmax.x0 - outer_wall_th,
                             control_outer_rpp.ymin.y0 + outer_wall_th, control_outer_rpp.ymax.y0 - outer_wall_th,
                             control_outer_rpp.zmin.z0, control_outer_rpp.zmax.z0 - outer_wall_th)
+    control_south_concrete_rpp = RPP(control_outer_rpp.xmin.x0, control_outer_rpp.xmin.x0 + 16*ft2cm,
+                                     control_outer_rpp.ymin.y0 - 2*ft2cm, control_outer_rpp.ymin.y0,
+                                     control_outer_rpp.zmin.z0, control_outer_rpp.zmin.z0 + 8*ft2cm)
+    control_east_concrete_rpp = RPP(control_south_concrete_rpp.xmax.x0, control_south_concrete_rpp.xmax.x0 + 2*ft2cm,
+                                    control_south_concrete_rpp.ymin.y0 + 9.5*2.54, 
+                                    control_south_concrete_rpp.ymin.y0 + 9.5*2.54 + 8*ft2cm,
+                                    control_south_concrete_rpp.zmin.z0, control_south_concrete_rpp.zmax.z0)
+    
 
     cask_ent_west_rpp = RPP(corner['nw'][0] + 20.6*ft2cm, corner['nw'][0] + 20.6*ft2cm + 5*2.54,
                             wall_rpps['north'].ymax.y0, wall_rpps['north'].ymax.y0 + 6*ft2cm,
@@ -149,29 +155,28 @@ def build_bates_model(experiment_universe=None,
                             cask_ent_west_rpp.zmin.z0 - floor_th, cask_ent_west_rpp.zmin.z0)
 
 
-    cask_west_wall_rpp = RPP(cask_ent_west_rpp.xmax.x0 + 5*2.54 - 2.45*ft2cm, cask_ent_west_rpp.xmax.x0 + 5*2.54,
-                            cask_ent_west_rpp.ymax.y0, cask_ent_west_rpp.ymax.y0 + 13.55*ft2cm,
+    cask_west_wall_rpp = RPP(cask_ent_west_rpp.xmax.x0 + 5*2.54 - 77, cask_ent_west_rpp.xmax.x0 + 5*2.54,
+                            cask_ent_west_rpp.ymax.y0, cask_ent_west_rpp.ymax.y0 + 411,
                             0, 10*ft2cm)
-    cask_north_wall_rpp = RPP(cask_west_wall_rpp.xmin.x0, cask_west_wall_rpp.xmin.x0 + 32.2*ft2cm,
-                            cask_west_wall_rpp.ymax.y0, cask_west_wall_rpp.ymax.y0 + 2.45*ft2cm,
+    cask_north_wall_rpp = RPP(cask_west_wall_rpp.xmin.x0, cask_west_wall_rpp.xmin.x0 + 978,
+                            cask_west_wall_rpp.ymax.y0, cask_west_wall_rpp.ymax.y0 + 77,
                             cask_west_wall_rpp.zmin.z0, cask_west_wall_rpp.zmax.z0)
-    cask_east_wall_1_rpp = RPP(cask_north_wall_rpp.xmax.x0 - 2.45*ft2cm, cask_north_wall_rpp.xmax.x0,
-                            cask_north_wall_rpp.ymin.y0 - 11.1*ft2cm, cask_north_wall_rpp.ymin.y0,
+    cask_east_wall_1_rpp = RPP(cask_north_wall_rpp.xmax.x0 - 77, cask_north_wall_rpp.xmax.x0,
+                            cask_north_wall_rpp.ymin.y0 - 335, cask_north_wall_rpp.ymin.y0,
                             cask_west_wall_rpp.zmin.z0, cask_west_wall_rpp.zmax.z0)
-    cask_south_wall_rpp = RPP(cask_ent_east_rpp.xmin.x0 - 7*2.54, cask_east_wall_1_rpp.xmax.x0,
+    cask_south_wall_rpp = RPP(cask_ent_east_rpp.xmin.x0 - 5*2.54, cask_east_wall_1_rpp.xmax.x0,
                             cask_ent_east_rpp.ymax.y0, cask_east_wall_1_rpp.ymin.y0,
                             cask_west_wall_rpp.zmin.z0, cask_west_wall_rpp.zmax.z0)
-    cask_east_wall_2_rpp = RPP(cask_south_wall_rpp.xmin.x0, cask_south_wall_rpp.xmin.x0 + 2.45*ft2cm,
-                            cask_south_wall_rpp.ymax.y0, cask_south_wall_rpp.ymax.y0 + 7*ft2cm,
+    cask_east_wall_2_rpp = RPP(cask_south_wall_rpp.xmin.x0, cask_south_wall_rpp.xmin.x0 + 76,
+                            cask_south_wall_rpp.ymax.y0, cask_south_wall_rpp.ymax.y0 + 213,
                             cask_west_wall_rpp.zmin.z0, cask_west_wall_rpp.zmax.z0)
     cask_ceil_rpp = RPP(cask_west_wall_rpp.xmin.x0, cask_east_wall_1_rpp.xmax.x0,
                         cask_south_wall_rpp.ymin.y0, cask_north_wall_rpp.ymax.y0,
-                        cask_west_wall_rpp.zmax.z0, cask_west_wall_rpp.zmax.z0 + 2.45*ft2cm)
+                        cask_west_wall_rpp.zmax.z0, cask_west_wall_rpp.zmax.z0 + 77)
     cask_floor_rpp = RPP(cask_west_wall_rpp.xmin.x0, cask_east_wall_1_rpp.xmax.x0,
                         cask_south_wall_rpp.ymin.y0, cask_north_wall_rpp.ymax.y0,
                         cask_west_wall_rpp.zmin.z0 - floor_th, cask_west_wall_rpp.zmin.z0)
     
-    concrete_wall_mid_y = (concrete_wall_rpp.ymin.y0 + concrete_wall_rpp.ymax.y0)/2
 
 
     if source_room == 'cask':
@@ -183,11 +188,8 @@ def build_bates_model(experiment_universe=None,
                              np.floor(cask_west_wall_rpp.zmax.z0))
         print("Cask experiment region: ", (-experiment_rpp).bounding_box)
     else:
-        # experiment_rpp = RPP(libra_center_coord[0] - 300, libra_center_coord[0] + 400,
-        #                     libra_center_coord[1] - 200, libra_center_coord[1] + 200,
-        #                     0.0, 300)
-        experiment_rpp = RPP(concrete_wall_rpp.xmin.x0 - 700, concrete_wall_rpp.xmin.x0,
-                            concrete_wall_mid_y - 300, concrete_wall_mid_y + 300,
+        experiment_rpp = RPP(libra_center_coord[0] - 300, libra_center_coord[0] + 400,
+                            libra_center_coord[1] - 200, libra_center_coord[1] + 200,
                             0.0, 300)
 
     soil_bot_plane = openmc.ZPlane(-soil_th, boundary_type='vacuum')
@@ -205,16 +207,18 @@ def build_bates_model(experiment_universe=None,
     ### Regions ###
 
     experiment_reg = -experiment_rpp
-    concrete_wall_reg = -concrete_wall_rpp
 
     building_reg = +floor_rpp.zmin & -ceil_rpp.zmax \
                 & +floor_rpp.ymin & -floor_rpp.ymax \
                 & +floor_rpp.xmin & -floor_rpp.xmax
 
     control_room_wall_reg = -control_outer_rpp & +control_inner_rpp
+    control_room_south_concrete_reg = -control_south_concrete_rpp
+    control_room_east_concrete_reg = -control_east_concrete_rpp
     control_room_air_reg = -control_inner_rpp
 
-    building_air_reg = -building_air_rpp & +control_outer_rpp & ~experiment_reg & ~concrete_wall_reg
+    building_air_reg = -building_air_rpp & +control_outer_rpp & ~experiment_reg \
+                    & +control_south_concrete_rpp & +control_east_concrete_rpp
 
     cask_ent_west_reg = -cask_ent_west_rpp
     cask_ent_east_reg = -cask_ent_east_rpp
@@ -291,6 +295,9 @@ def build_bates_model(experiment_universe=None,
 
     control_room_wall_cell = openmc.Cell(region=control_room_wall_reg, fill=steel, name='control rooom walls')
     control_room_air_cell = openmc.Cell(region=control_room_air_reg, fill=Air, name='control room air')
+    control_south_concrete_cell = openmc.Cell(region=control_room_south_concrete_reg, fill=PortlandConc, name='control room south concrete wall')
+    control_east_concrete_cell = openmc.Cell(region=control_room_east_concrete_reg, fill=PortlandConc, name='control room east concrete wall')
+
 
     ## cask cells
     cask_ent_west_cell = openmc.Cell(region=cask_ent_west_reg, fill=PortlandConc, name='cask entrance west wall')
@@ -308,7 +315,6 @@ def build_bates_model(experiment_universe=None,
 
     building_air_cell = openmc.Cell(region=building_air_reg, fill=Air, name='building air')
 
-    concrete_wall_cell = openmc.Cell(region=concrete_wall_reg, fill=PortlandConc, name='concrete wall')
 
     soil_cell = openmc.Cell(region=soil_reg, fill=Soil, name='soil')
     outside_air_cell = openmc.Cell(region=outside_air_reg, fill=Air, name='outside air')
@@ -323,12 +329,12 @@ def build_bates_model(experiment_universe=None,
         experiment_cell = openmc.Cell(region=experiment_reg, fill=None, name='experiment')
 
     cells += [floor_cell, ceil_cell, control_room_wall_cell, control_room_air_cell,
+            control_south_concrete_cell, control_east_concrete_cell,
             cask_ent_west_cell, cask_ent_east_cell, cask_ent_ceil_cell,
             cask_floor_cell, cask_room_ceil_cell,
             cask_west_wall_cell, cask_north_wall_cell, cask_east_wall_cell,
             cask_south_wall_cell, cask_air_cell,
             building_air_cell, soil_cell, outside_air_cell,
-            concrete_wall_cell,
             experiment_cell
             ]
 

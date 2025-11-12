@@ -157,7 +157,7 @@ def build_bates_model(experiment_universe=None,
 
     cask_west_wall_rpp = RPP(cask_ent_west_rpp.xmax.x0 + 5*2.54 - 77, cask_ent_west_rpp.xmax.x0 + 5*2.54,
                             cask_ent_west_rpp.ymax.y0, cask_ent_west_rpp.ymax.y0 + 411,
-                            0, 10*ft2cm)
+                            0, 240)
     cask_north_wall_rpp = RPP(cask_west_wall_rpp.xmin.x0, cask_west_wall_rpp.xmin.x0 + 978,
                             cask_west_wall_rpp.ymax.y0, cask_west_wall_rpp.ymax.y0 + 77,
                             cask_west_wall_rpp.zmin.z0, cask_west_wall_rpp.zmax.z0)
@@ -172,7 +172,7 @@ def build_bates_model(experiment_universe=None,
                             cask_west_wall_rpp.zmin.z0, cask_west_wall_rpp.zmax.z0)
     cask_ceil_rpp = RPP(cask_west_wall_rpp.xmin.x0, cask_east_wall_1_rpp.xmax.x0,
                         cask_south_wall_rpp.ymin.y0, cask_north_wall_rpp.ymax.y0,
-                        cask_west_wall_rpp.zmax.z0, cask_west_wall_rpp.zmax.z0 + 77)
+                        cask_west_wall_rpp.zmax.z0, cask_west_wall_rpp.zmax.z0 + 60)
     cask_floor_rpp = RPP(cask_west_wall_rpp.xmin.x0, cask_east_wall_1_rpp.xmax.x0,
                         cask_south_wall_rpp.ymin.y0, cask_north_wall_rpp.ymax.y0,
                         cask_west_wall_rpp.zmin.z0 - floor_th, cask_west_wall_rpp.zmin.z0)

@@ -13,7 +13,7 @@ version_string = 'sides_12in_BPE_north_16in_BPE_ceil_12in_BPE_v1'
 num_particles_per_batch = 1e6
 directory = Path(source_room) / version_string / source_side
 
-experiment_rpp = RPP(819.5, 1485.3, 2074.4, 2412.6, 0.0, 304.7)
+experiment_rpp = RPP(826.0, 1477.0, 2076.0, 2410.0, 0.0, 240.0)
 
 
 west_shield_rpp = RPP(experiment_rpp.xmin.x0 + 100, 

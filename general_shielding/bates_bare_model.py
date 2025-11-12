@@ -326,7 +326,7 @@ def build_bates_model(experiment_universe=None,
         if do_translation:
             experiment_cell.translation = (libra_center_coord[0], libra_center_coord[1], 0)
     else:
-        experiment_cell = openmc.Cell(region=experiment_reg, fill=None, name='experiment')
+        experiment_cell = openmc.Cell(region=experiment_reg, fill=Air, name='experiment')
 
     cells += [floor_cell, ceil_cell, control_room_wall_cell, control_room_air_cell,
             control_south_concrete_cell, control_east_concrete_cell,

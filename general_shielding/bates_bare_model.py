@@ -43,6 +43,13 @@ Air.add_element('O', 0.23178, 'wo')
 Air.add_element('Ar', 0.012827, 'wo')
 Air.set_density('g/cm3', 0.0012)
 
+drywall = openmc.Material(name="Drywall")
+drywall.set_density('g/cm3', 0.75)
+drywall.add_element('H', 4/12, 'ao')
+drywall.add_element('O', 6/12, 'ao')
+drywall.add_element('Ca', 1/12, 'ao')
+drywall.add_element('S', 1/12, 'ao')
+
 # UPDATE WITH ACTUAL DIMENSIONS
 
 
@@ -51,7 +58,8 @@ def build_bates_model(experiment_universe=None,
                       run_sim=False,
                       num_particles_per_batch=1e6,
                       libra_center_coord=None,
-                      do_translation=True):
+                      do_translation=True,
+                      use_weight_windows=False):
     # Coordinates of the center of the bottom of libra tank
     # with the origin at the inside southwest corner of the Bates Lab OC19D
 
@@ -77,7 +85,7 @@ def build_bates_model(experiment_universe=None,
     Soil.add_element('Fe', 0.021050, percent_type='ao')
 
 
-    materials = openmc.Materials([steel, PortlandConc, Air, Soil, BPE, lead])
+    materials = openmc.Materials([steel, PortlandConc, Air, Soil, BPE, lead, drywall])
 
     ################### Geometry #########################
 
@@ -85,7 +93,7 @@ def build_bates_model(experiment_universe=None,
     outer_wall_th = 0.2
     floor_to_ceil = 30*12*2.54
     ft2cm = 12*2.54
-    soil_th = 36*2.54
+    soil_th = 10*2.54*12
 
     corner = {}
     corner['sw'] = [0, 0]
@@ -125,19 +133,23 @@ def build_bates_model(experiment_universe=None,
                         corner['sw'][1], corner['nw'][1],
                         0, floor_to_ceil)
 
-    control_outer_rpp = RPP(corner['nw'][0] + 26*ft2cm, corner['nw'][0] + (26 + 16.2)*ft2cm,
+    control_outer_rpp = RPP(corner['nw'][0] + 26*ft2cm, corner['nw'][0] + (26 + 16.0)*ft2cm,
                         corner['nw'][1] - (1.1 + 10.3)*ft2cm, corner['nw'][1] - (1.1)*ft2cm,
                         0, 8*ft2cm)
+    print("Control room outer RPP: ", (-control_outer_rpp).bounding_box)
     control_inner_rpp = RPP(control_outer_rpp.xmin.x0 + outer_wall_th, control_outer_rpp.xmax.x0 - outer_wall_th,
                             control_outer_rpp.ymin.y0 + outer_wall_th, control_outer_rpp.ymax.y0 - outer_wall_th,
                             control_outer_rpp.zmin.z0, control_outer_rpp.zmax.z0 - outer_wall_th)
-    control_south_concrete_rpp = RPP(control_outer_rpp.xmin.x0, control_outer_rpp.xmin.x0 + 16*ft2cm,
+    print("Control room inner RPP: ", (-control_inner_rpp).bounding_box)
+    control_south_concrete_rpp = RPP(control_outer_rpp.xmin.x0, control_outer_rpp.xmax.x0,
                                      control_outer_rpp.ymin.y0 - 2*ft2cm, control_outer_rpp.ymin.y0,
                                      control_outer_rpp.zmin.z0, control_outer_rpp.zmin.z0 + 8*ft2cm)
+    print("Control room south concrete RPP: ", (-control_south_concrete_rpp).bounding_box)
     control_east_concrete_rpp = RPP(control_south_concrete_rpp.xmax.x0, control_south_concrete_rpp.xmax.x0 + 2*ft2cm,
                                     control_south_concrete_rpp.ymin.y0 + 9.5*2.54, 
                                     control_south_concrete_rpp.ymin.y0 + 9.5*2.54 + 8*ft2cm,
                                     control_south_concrete_rpp.zmin.z0, control_south_concrete_rpp.zmax.z0)
+    print("Control room east concrete RPP: ", (-control_east_concrete_rpp).bounding_box)
     
 
     cask_ent_west_rpp = RPP(corner['nw'][0] + 20.6*ft2cm, corner['nw'][0] + 20.6*ft2cm + 5*2.54,
@@ -178,7 +190,6 @@ def build_bates_model(experiment_universe=None,
                         cask_west_wall_rpp.zmin.z0 - floor_th, cask_west_wall_rpp.zmin.z0)
     
 
-
     if source_room == 'cask':
         experiment_rpp = RPP(np.ceil(cask_east_wall_2_rpp.xmax.x0), 
                              np.floor(cask_east_wall_1_rpp.xmin.x0),
@@ -194,12 +205,14 @@ def build_bates_model(experiment_universe=None,
 
     soil_bot_plane = openmc.ZPlane(-soil_th, boundary_type='vacuum')
     soil_top_plane = openmc.ZPlane(-10)
+
     boundary_planes = {}
     boundary_planes['south'] = openmc.YPlane(corner['se'][1] - 200, boundary_type='vacuum')
     boundary_planes['east'] = openmc.XPlane(corner['se'][0] + 200, boundary_type='vacuum')
-    boundary_planes['north'] = openmc.YPlane(corner['ne'][1] + 1000, boundary_type='vacuum')
-    boundary_planes['west'] = openmc.XPlane(corner['nw'][0] - 200, boundary_type='vacuum')
-    boundary_planes['top'] = openmc.ZPlane(ceil_rpp.zmax.z0 + 200, boundary_type='vacuum') 
+    boundary_planes['north'] = openmc.YPlane(4000, boundary_type='vacuum')
+    boundary_planes['west'] = openmc.XPlane(corner['nw'][0] - 500, boundary_type='vacuum')
+    # Model 20 meters of air above ceiling to try to model sky shine
+    boundary_planes['top'] = openmc.ZPlane(ceil_rpp.zmax.z0 + 3000, boundary_type='vacuum') 
 
     # libra_cell = openmc.Cell(region=libra_reg, fill=libra_universe, name='Air LIBRA')
 
@@ -293,7 +306,7 @@ def build_bates_model(experiment_universe=None,
     floor_cell = openmc.Cell(region=-floor_rpp, fill=PortlandConc, name='floor')
     ceil_cell = openmc.Cell(region=-ceil_rpp, fill=steel, name='ceiling')
 
-    control_room_wall_cell = openmc.Cell(region=control_room_wall_reg, fill=steel, name='control rooom walls')
+    control_room_wall_cell = openmc.Cell(region=control_room_wall_reg, fill=drywall, name='control rooom walls')
     control_room_air_cell = openmc.Cell(region=control_room_air_reg, fill=Air, name='control room air')
     control_south_concrete_cell = openmc.Cell(region=control_room_south_concrete_reg, fill=PortlandConc, name='control room south concrete wall')
     control_east_concrete_cell = openmc.Cell(region=control_room_east_concrete_reg, fill=PortlandConc, name='control room east concrete wall')
@@ -328,6 +341,8 @@ def build_bates_model(experiment_universe=None,
     else:
         experiment_cell = openmc.Cell(region=experiment_reg, fill=Air, name='experiment')
 
+    print("Experiment region: ", experiment_cell.region.bounding_box)
+
     cells += [floor_cell, ceil_cell, control_room_wall_cell, control_room_air_cell,
             control_south_concrete_cell, control_east_concrete_cell,
             cask_ent_west_cell, cask_ent_east_cell, cask_ent_ceil_cell,
@@ -345,12 +360,56 @@ def build_bates_model(experiment_universe=None,
     print(floor_cell.region.bounding_box)
     ################### Tallies #########################
 
-    mesh = openmc.RegularMesh(mesh_id=1)
-    # mesh.dimension = (27, 27, 22)
-    mesh.dimension = (78, 62, 20)
-    mesh.lower_left = (-100, -100, 0)
-    mesh.upper_right = (3800, 3000, 1000)
+    if source_room == 'warehouse':
+        mesh = openmc.RegularMesh(mesh_id=1)
+        mesh.dimension = (78, 62, 20)
+        mesh.lower_left = (-100, -100, 0)
+        mesh.upper_right = (3700, 3000, 1000)
+    elif source_room == 'cask':
+        # flux_mesh = openmc.RegularMesh(mesh_id=1)
+        # flux_mesh.dimension = (90, 175, 54)
+        # flux_mesh.lower_left = (-200, 500, 0)
+        # flux_mesh.upper_right = (2500, 4000, 2200)
+
+        mesh = openmc.RectilinearMesh(mesh_id=1)
+        x_grid_warehouse = np.linspace(-200, cask_west_wall_rpp.xmin.x0, 15, endpoint=False).tolist()
+        x_grid_cask_west_wall = np.linspace(cask_west_wall_rpp.xmin.x0, cask_west_wall_rpp.xmax.x0, 6, endpoint=False).tolist()
+        x_grid_cask_entrance = np.linspace(cask_west_wall_rpp.xmax.x0, cask_east_wall_2_rpp.xmin.x0, 4, endpoint=False).tolist()
+        x_grid_cask_east_2_wall = np.linspace(cask_east_wall_2_rpp.xmin.x0, cask_east_wall_2_rpp.xmax.x0, 6, endpoint=False).tolist()
+        x_grid_cask_room = np.linspace(cask_east_wall_2_rpp.xmax.x0, cask_east_wall_1_rpp.xmin.x0, 15, endpoint=False).tolist()
+        x_grid_cask_east_1_wall = np.linspace(cask_east_wall_1_rpp.xmin.x0, cask_east_wall_1_rpp.xmax.x0, 6, endpoint=False).tolist()
+        x_grid_outside = np.arange(cask_east_wall_1_rpp.xmax.x0, 2500 + 1, 50).tolist()
+
+        x_grid = (x_grid_warehouse + x_grid_cask_west_wall 
+                  + x_grid_cask_entrance + x_grid_cask_east_2_wall 
+                  + x_grid_cask_room + x_grid_cask_east_1_wall 
+                  + x_grid_outside)
+        
+        y_grid_warehouse = np.arange(500, cask_south_wall_rpp.ymin.y0, 50).tolist()
+        y_grid_south_wall = np.linspace(cask_south_wall_rpp.ymin.y0, cask_south_wall_rpp.ymax.y0, 6, endpoint=False).tolist()
+        y_grid_cask_room = np.linspace(cask_south_wall_rpp.ymax.y0, cask_north_wall_rpp.ymin.y0, 10, endpoint=False).tolist()
+        y_grid_cask_north_wall = np.linspace(cask_north_wall_rpp.ymin.y0, cask_north_wall_rpp.ymax.y0, 6, endpoint=False).tolist()
+        y_grid_outside = np.arange(cask_north_wall_rpp.ymax.y0, 4000 + 1, 50).tolist()
+        y_grid = (y_grid_warehouse + y_grid_south_wall + y_grid_cask_room
+                  + y_grid_cask_north_wall + y_grid_outside)
+
+        z_grid_floor = np.linspace(floor_rpp.zmin.z0, floor_rpp.zmax.z0, 4, endpoint=False).tolist()
+        z_grid_cask = np.linspace(floor_rpp.zmax.z0, cask_ceil_rpp.zmin.z0, 12, endpoint=False).tolist()
+        z_grid_ceil = np.arange(cask_ceil_rpp.zmin.z0, cask_ceil_rpp.zmax.z0, 20).tolist()
+        z_grid_outside = np.arange(cask_ceil_rpp.zmax.z0, 2200 + 1, 50).tolist()
+
+        z_grid = z_grid_floor + z_grid_cask + z_grid_ceil + z_grid_outside
+
+        print("\nMesh x grid points: ", x_grid)
+        print("\nMesh y grid points: ", y_grid)
+        print("\nMesh z grid points: ", z_grid)
+        mesh.x_grid = x_grid
+        mesh.y_grid = y_grid
+        mesh.z_grid = z_grid
+
+
     mesh_filter = openmc.MeshFilter(mesh)
+    # flux_mesh_filter = openmc.MeshFilter(flux_mesh)
 
 
     dose_n_energies, dose_n_coeffs = openmc.data.dose_coefficients('neutron')
@@ -372,26 +431,32 @@ def build_bates_model(experiment_universe=None,
     neutron_filter = openmc.ParticleFilter('neutron')
     photon_filter = openmc.ParticleFilter('photon')
 
-    neutron_tally = openmc.Tally(tally_id=1)
-    # neutron_tally.filters.append(mesh_filter)
-    neutron_tally.filters.append(mesh_filter)
-    neutron_tally.filters.append(n_dose_filter)
-    neutron_tally.filters.append(neutron_filter)
-    neutron_tally.scores = ['flux']
 
-    photon_tally = openmc.Tally(tally_id=2)
-    # photon_tally.filters.append(mesh_filter)
-    photon_tally.filters.append(mesh_filter)
-    photon_tally.filters.append(p_dose_filter)
-    photon_tally.filters.append(photon_filter)
-    photon_tally.scores = ['flux']
+    neutron_flux_tally = openmc.Tally(name='neutron flux tally', tally_id=3)
+    neutron_flux_tally.filters.append(mesh_filter)
+    neutron_flux_tally.filters.append(neutron_filter)
+    neutron_flux_tally.scores = ['flux']
+
+    neutron_dose_tally = openmc.Tally(name='neutron dose tally', tally_id=1)
+    # neutron_dose_tally.filters.append(mesh_filter)
+    neutron_dose_tally.filters.append(mesh_filter)
+    neutron_dose_tally.filters.append(n_dose_filter)
+    neutron_dose_tally.filters.append(neutron_filter)
+    neutron_dose_tally.scores = ['flux']
+
+    photon_dose_tally = openmc.Tally(name='photon dose tally', tally_id=2)
+    # photon_dose_tally.filters.append(mesh_filter)
+    photon_dose_tally.filters.append(mesh_filter)
+    photon_dose_tally.filters.append(p_dose_filter)
+    photon_dose_tally.filters.append(photon_filter)
+    photon_dose_tally.scores = ['flux']
 
     # t_tally = openmc.Tally(name='tritium tally')
     # salt_filter = openmc.CellFilter([salt_cell])
     # t_tally.filters.append(salt_filter)
     # t_tally.scores = ['(n,Xt)']
 
-    tallies = openmc.Tallies([neutron_tally, photon_tally])
+    tallies = openmc.Tallies([neutron_dose_tally, photon_dose_tally, neutron_flux_tally])
     # tallies = openmc.Tallies([neutron_tally])
     # tallies = openmc.Tallies()
 
@@ -404,9 +469,10 @@ def build_bates_model(experiment_universe=None,
                                 libra_center_coord[2]))
     src = openmc.IndependentSource(space=point)
     src.energy = openmc.stats.Discrete([14.1E6], [1.0])
+    src.angle = openmc.stats.Isotropic()
     src.strength = 1.0
 
-    print(src.space.xyz)
+    print('Source xyz: ', src.space.xyz)
     # vol = openmc.VolumeCalculation(domains=libra_quarter_1_cells, samples=int(1e7))
     settings = openmc.Settings()
     settings.run_mode = 'fixed source'
@@ -416,9 +482,20 @@ def build_bates_model(experiment_universe=None,
     settings.particles = int(num_particles_per_batch)
     settings.verbosity = 7
     settings.statepoint = {'batches':[ 100]}
+    settings.output = {"tallies": False}
     # settings.volume_calculations = [vol]
     settings.photon_transport = True
     # settings.photon_transport = False
+
+    if use_weight_windows:
+        pass
+        # wwg = openmc.WeightWindowGenerator(
+        #         method='magic',
+        #         mesh=mesh,
+        #         max_realizations=settings.batches
+        #     )
+        # settings.weight_window_generators = wwg
+        # settings.inactive = 50
 
     plot_xy = openmc.Plot()
     plot_xy.origin = (libra_center_coord[0], libra_center_coord[1], libra_center_coord[2])
@@ -477,7 +554,7 @@ def build_bates_model(experiment_universe=None,
     # Return the model
     model = openmc.Model(materials=materials, geometry=geometry, settings=settings,
                          tallies=tallies, plots=plots)
-    return model
+    return model, mesh
 
 # Example usage:
 if __name__ == '__main__':

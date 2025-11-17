@@ -89,7 +89,10 @@ dmypy.json
 *.DS_Store
 
 *.xml
-*/statepoint.*.h5
-*/summary.h5
-*/plot_settings.pkl
-*/tallies.out
+statepoint.*.h5
+summary.h5
+plot_settings.pkl
+tallies.out
+libra_2_sheild_1/
+libra_3_shield_1/
+libra_3_shield_2/

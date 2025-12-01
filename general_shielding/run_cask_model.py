@@ -12,9 +12,12 @@ from matplotlib.colors import LogNorm
 
 source_room = 'cask'
 source_side = 'west'
-version_string = 'center_shield_24in'
-num_particles_per_batch = 1e5
-use_weight_windows = True
+version_string = 'center_shield_24in_east_12in_Concrete'
+outside_east_wall_thickness = 12.0 * 2.54  # in cm
+outside_east_wall_material = PortlandConc
+
+num_particles_per_batch = 5e7
+use_weight_windows = False
 
 directory = Path(source_room) / version_string / source_side
 
@@ -104,7 +107,9 @@ model, mesh = build_bates_model(experiment_universe=universe,
                           num_particles_per_batch=num_particles_per_batch,
                           libra_center_coord=libra_center_coord,
                           do_translation=False,
-                          use_weight_windows=True)
+                          use_weight_windows=True,
+                          east_wall_thickness=outside_east_wall_thickness,
+                          east_wall_material=outside_east_wall_material)
 
 if __name__ == '__main__':
     curr_dir = os.getcwd()
@@ -113,7 +118,7 @@ if __name__ == '__main__':
 
     # Use random ray
 
-    # # From https://fusion-energy.github.io/neutronics-workshop/tasks/task_14_variance_reduction/5_shielded_room_fw_cadis.html
+    # From https://fusion-energy.github.io/neutronics-workshop/tasks/task_14_variance_reduction/5_shielded_room_fw_cadis.html
     # rr_model = copy.deepcopy(model)
     # # turn off photons for random ray model
     # rr_model.settings.photon_transport = False
@@ -158,7 +163,8 @@ if __name__ == '__main__':
     # print("Max weight window lower bound:", np.max(weight_windows[0].lower_ww_bounds))
     # print("Min weight window lower bound above 0:", np.min(weight_windows[0].lower_ww_bounds[np.nonzero(weight_windows[0].lower_ww_bounds)]))
     # print("mean weight window lower bound:", np.mean(weight_windows[0].lower_ww_bounds))
-    # source_z_ind = int(np.floor((libra_center_coord[2] - mesh.lower_left[2]) / mesh.width[2]))
+    # source_z_ind = np.argmin(np.abs(mesh.z_grid - libra_center_coord[2]))
+    # # source_z_ind = int(np.floor((libra_center_coord[2] - mesh.lower_left[2]) / mesh.width[2]))
     # ax1 = plt.subplot()
     # im = ax1.imshow(
     #     weight_windows[0].lower_ww_bounds.squeeze()[:, :, source_z_ind].T,
@@ -183,20 +189,20 @@ if __name__ == '__main__':
     # model.settings.weight_windows = weight_windows
     # model.settings.weight_windows_on = True
 
-    if use_weight_windows:
-        if os.path.exists('weight_windows.h5'):
-            print("Using existing weight windows...")
-            weight_windows = openmc.hdf5_to_wws('weight_windows.h5')
-            model.settings.weight_windows = weight_windows
-            model.settings.weight_windows_on = True
-        else:
-            print("Generating weight windows using magic method...")
-            wwg = openmc.WeightWindowGenerator(
-                        method='magic',
-                        mesh=mesh,
-                        max_realizations=model.settings.batches
-                    )
-            model.settings.weight_window_generators = wwg
+    # if use_weight_windows:
+    #     if os.path.exists('weight_windows.h5'):
+    #         print("Using existing weight windows...")
+    #         weight_windows = openmc.hdf5_to_wws('weight_windows.h5')
+    #         model.settings.weight_windows = weight_windows
+    #         model.settings.weight_windows_on = True
+    #     else:
+    #         print("Generating weight windows using magic method...")
+    #         wwg = openmc.WeightWindowGenerator(
+    #                     method='magic',
+    #                     mesh=mesh,
+    #                     max_realizations=model.settings.batches
+    #                 )
+    #         model.settings.weight_window_generators = wwg
 
     print("Running main model...")
     model.export_to_model_xml()

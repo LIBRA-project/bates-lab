@@ -14,9 +14,10 @@ source_room = 'cask' # Options: 'warehouse', 'cask'
 source_side = 'west'
 # version_string = 'sides_24in_conc_east_12in_BPE_ceil_12in_BPE_v1'
 # version_string = 'sides_24in_conc_no_east_BPE_ceil_18in_BPE_v1'
-version_string = 'center_shield_24in'
+version_string = 'center_shield_24in_east_12in_Concrete'
 directory = Path(source_room) / version_string / source_side
 
+experiment_bounding_box = [826.0, 1477.0, 2076.0, 2410.0, 0.0, 240.0]
 
 source_rate = 7.0e9 # n/s
 
@@ -161,12 +162,16 @@ def plot_total_dose(mesh, basis='xy'):
                     norm=LogNorm(vmin=np.nanmin(plot_dose_err[plot_dose_err>0]), 
                                  vmax=np.nanmax(plot_dose_err)))
     ## add contour lines
-    clines = ax.contour(xmesh, ymesh, plot_dose, colors='white', linewidths=0.5, 
-                        levels=[1e-3, 1e-2, 1e-1, 0.5, 1, 10, 100, 1000, 1e4, 1e5])
+    clines = ax.contour(xmesh, ymesh, plot_dose, 
+                        levels=[1e-3, 1e-2, 1e-1, 0.5, 1, 10, 100, 1000, 1e4, 1e5],
+                        linewidths = [0.5]*3 + [1.5] + [0.5]*6,
+                        colors=['white']*3 + ['cyan'] + ['white']*6)
     clines_err = ax_err.contour(xmesh, ymesh, plot_dose_err, colors='black', linewidths=0.5, 
                         levels=[1e-3, 1e-2, 1e-1, 1, 5, 10, 100])
     ## add contour labels
-    ax.clabel(clines, fmt=lambda x: '{:.0g}'.format(x), colors='white', fontsize=8)
+    ax.clabel(clines, fmt=lambda x: '{:.0g}'.format(x), 
+              colors=['white']*3 + ['cyan'] + ['white']*6, 
+              fontsize=8)
     ax_err.clabel(clines_err, fmt=lambda x: '{:.0g}%'.format(x), colors='black', fontsize=8)
     fig.colorbar(c, ax=ax, label='Dose (mrem/hr)', fraction=0.046*im_ratio, pad=0.04)
 

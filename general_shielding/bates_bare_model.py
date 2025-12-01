@@ -59,7 +59,9 @@ def build_bates_model(experiment_universe=None,
                       num_particles_per_batch=1e6,
                       libra_center_coord=None,
                       do_translation=True,
-                      use_weight_windows=False):
+                      use_weight_windows=False,
+                      east_wall_thickness=0.0,
+                      east_wall_material=Air):
     # Coordinates of the center of the bottom of libra tank
     # with the origin at the inside southwest corner of the Bates Lab OC19D
 
@@ -190,6 +192,30 @@ def build_bates_model(experiment_universe=None,
                         cask_west_wall_rpp.zmin.z0 - floor_th, cask_west_wall_rpp.zmin.z0)
     
 
+    soil_bot_plane = openmc.ZPlane(-soil_th, boundary_type='vacuum')
+    soil_top_plane = openmc.ZPlane(-10)
+
+    boundary_planes = {}
+    boundary_planes['south'] = openmc.YPlane(corner['se'][1] - 200, boundary_type='vacuum')
+    boundary_planes['east'] = openmc.XPlane(corner['se'][0] + 200, boundary_type='vacuum')
+    boundary_planes['north'] = openmc.YPlane(4000, boundary_type='vacuum')
+    boundary_planes['west'] = openmc.XPlane(corner['nw'][0] - 500, boundary_type='vacuum')
+    # Model 20 meters of air above ceiling to try to model sky shine
+    boundary_planes['top'] = openmc.ZPlane(ceil_rpp.zmax.z0 + 3000, boundary_type='vacuum') 
+
+    if east_wall_thickness > 0.0:
+        outside_cask_east_wall_rpp = RPP(cask_east_wall_1_rpp.xmax.x0,
+                                        cask_east_wall_1_rpp.xmax.x0 + east_wall_thickness,
+                                        cask_east_wall_1_rpp.ymin.y0,
+                                        cask_east_wall_1_rpp.ymax.y0,
+                                        soil_top_plane.z0,
+                                        cask_ceil_rpp.zmax.z0)
+        outside_cask_east_wall_reg = -outside_cask_east_wall_rpp
+        outside_cask_east_wall_cell = openmc.Cell(region=outside_cask_east_wall_reg,
+                                                  fill=east_wall_material,
+                                                  name='Outside Cask East Wall')
+    
+
     if source_room == 'cask':
         experiment_rpp = RPP(np.ceil(cask_east_wall_2_rpp.xmax.x0), 
                              np.floor(cask_east_wall_1_rpp.xmin.x0),
@@ -202,17 +228,6 @@ def build_bates_model(experiment_universe=None,
         experiment_rpp = RPP(libra_center_coord[0] - 300, libra_center_coord[0] + 400,
                             libra_center_coord[1] - 200, libra_center_coord[1] + 200,
                             0.0, 300)
-
-    soil_bot_plane = openmc.ZPlane(-soil_th, boundary_type='vacuum')
-    soil_top_plane = openmc.ZPlane(-10)
-
-    boundary_planes = {}
-    boundary_planes['south'] = openmc.YPlane(corner['se'][1] - 200, boundary_type='vacuum')
-    boundary_planes['east'] = openmc.XPlane(corner['se'][0] + 200, boundary_type='vacuum')
-    boundary_planes['north'] = openmc.YPlane(4000, boundary_type='vacuum')
-    boundary_planes['west'] = openmc.XPlane(corner['nw'][0] - 500, boundary_type='vacuum')
-    # Model 20 meters of air above ceiling to try to model sky shine
-    boundary_planes['top'] = openmc.ZPlane(ceil_rpp.zmax.z0 + 3000, boundary_type='vacuum') 
 
     # libra_cell = openmc.Cell(region=libra_reg, fill=libra_universe, name='Air LIBRA')
 
@@ -288,7 +303,8 @@ def build_bates_model(experiment_universe=None,
                     & +boundary_planes['west'] & -boundary_planes['east'] \
                     & +boundary_planes['south'] & -boundary_planes['north'] \
                     & ~building_reg \
-                    & ~cask_reg
+                    & ~cask_reg \
+                    & ~outside_cask_east_wall_reg
 
 
     ### Cells ###
@@ -352,6 +368,9 @@ def build_bates_model(experiment_universe=None,
             building_air_cell, soil_cell, outside_air_cell,
             experiment_cell
             ]
+    
+    if east_wall_thickness > 0.0:
+        cells.append(outside_cask_east_wall_cell)
 
     universe = openmc.Universe(cells=cells)
     geometry = openmc.Geometry(universe)
